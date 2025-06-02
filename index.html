@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>摇一摇选人</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#3B82F6',
+            secondary: '#F97316',
+            accent: '#8B5CF6',
+            dark: '#1E293B',
+            light: '#F8FAFC'
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .content-auto {
+        content-visibility: auto;
+      }
+      .shake-animation {
+        animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+      }
+      .result-appear {
+        animation: fadeIn 0.5s ease-out forwards;
+      }
+      .rotate {
+        animation: rotate 2s linear infinite;
+      }
+      .photo-upload-preview {
+        width: 48px;
+        height: 48px;
+        object-fit: cover;
+        border-radius: 50%;
+      }
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 6px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.3);
+        border-radius: 10px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.5);
+      }
+    }
+    
+    @keyframes shake {
+      10%, 90% { transform: translate3d(-1px, 0, 0); }
+      20%, 80% { transform: translate3d(2px, 0, 0); }
+      30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+      40%, 60% { transform: translate3d(4px, 0, 0); }
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes rotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-dark to-primary min-h-screen text-light font-sans">
+  <div class="container mx-auto px-4 py-8 max-w-4xl">
+    <!-- 标题区域 -->
+    <header class="text-center mb-8">
+      <h1 class="text-[clamp(2rem,5vw,3rem)] font-bold mb-2 tracking-tight">摇一摇选人</h1>
+      <p class="text-blue-200 text-lg">通过摇动手机或点击按钮随机选择一个人</p>
+    </header>
+    
+    <!-- 导入区域 -->
+    <section class="bg-white/10 backdrop-blur-md rounded-2xl p-6 shadow-xl mb-8">
+      <h2 class="text-xl font-semibold mb-4 flex items-center">
+        <i class="fa fa-upload mr-2 text-accent"></i>批量导入
+      </h2>
+      
+      <div class="grid md:grid-cols-2 gap-6">
+        <!-- 导入名单 -->
+        <div class="space-y-4">
+          <h3 class="text-lg font-medium">名单导入</h3>
+          <div class="flex flex-col">
+            <label class="block text-sm font-medium text-blue-200 mb-2">CSV 文件格式</label>
+            <div class="flex items-center justify-center w-full">
+              <label 
+                for="csv-upload" 
+                class="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-blue-300 rounded-lg cursor-pointer bg-white/5 hover:bg-white/10 transition-colors"
+              >
+                <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                  <i class="fa fa-file-text-o text-2xl text-blue-300 mb-2"></i>
+                  <p class="mb-2 text-sm text-blue-200"><span class="font-semibold">点击上传 CSV 文件</span></p>
+                  <p class="text-xs text-blue-300">支持格式: .csv</p>
+                </div>
+                <input id="csv-upload" type="file" accept=".csv" class="hidden" />
+              </label>
+            </div>
+            <div id="csv-upload-info" class="text-sm text-blue-300 mt-2 hidden">
+              <p>已选择: <span id="csv-filename">无文件</span></p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 导入照片 -->
+        <div class="space-y-4">
+          <h3 class="text-lg font-medium">照片导入</h3>
+          <div class="flex flex-col">
+            <label class="block text-sm font-medium text-blue-200 mb-2">ZIP 压缩包格式</label>
+            <div class="flex items-center justify-center w-full">
+              <label 
+                for="photo-upload" 
+                class="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-blue-300 rounded-lg cursor-pointer bg-white/5 hover:bg-white/10 transition-colors"
+              >
+                <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                  <i class="fa fa-file-archive-o text-2xl text-blue-300 mb-2"></i>
+                  <p class="mb-2 text-sm text-blue-200"><span class="font-semibold">点击上传照片 ZIP 包</span></p>
+                  <p class="text-xs text-blue-300">支持格式: .zip</p>
+                </div>
+                <input id="photo-upload" type="file" accept=".zip" class="hidden" />
+              </label>
+            </div>
+            <div id="photo-upload-info" class="text-sm text-blue-300 mt-2 hidden">
+              <p>已选择: <span id="photo-filename">无文件</span></p>
+              <p id="photo-count" class="text-xs">照片数量: 0</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="mt-6 flex justify-center">
+        <button id="import-button" class="bg-accent hover:bg-accent/90 text-white font-medium py-2 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 flex items-center">
+          <i class="fa fa-check-circle mr-2"></i>导入数据
+        </button>
+      </div>
+    </section>
+    
+    <!-- 主要内容区域 -->
+    <main class="bg-white/10 backdrop-blur-md rounded-2xl p-6 shadow-xl mb-8">
+      <!-- 参与人员列表 -->
+      <section class="mb-8">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-xl font-semibold flex items-center">
+            <i class="fa fa-users mr-2 text-secondary"></i>参与人员
+          </h2>
+          <div class="text-sm text-blue-300">
+            <span id="participant-count">0</span> 名参与者
+          </div>
+        </div>
+        
+        <div id="participants-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
+          <!-- 参与人员将通过JavaScript动态添加 -->
+          <div class="col-span-full animate-pulse text-center py-12 text-blue-200">
+            <p>请添加参与人员或导入名单</p>
+          </div>
+        </div>
+        
+        <!-- 单个添加人员 -->
+        <div class="mt-4 flex">
+          <div class="relative mr-3">
+            <label for="single-photo" class="block w-12 h-12 rounded-full bg-white/20 border border-white/30 flex items-center justify-center cursor-pointer">
+              <i class="fa fa-camera text-blue-300"></i>
+              <input id="single-photo" type="file" accept="image/*" class="hidden" />
+            </label>
+            <div id="single-photo-preview" class="absolute inset-0 rounded-full overflow-hidden hidden">
+              <img src="" alt="预览图" class="w-full h-full object-cover">
+            </div>
+          </div>
+          <input 
+            type="text" 
+            id="participant-input" 
+            placeholder="输入姓名" 
+            class="flex-1 px-4 py-2 rounded-lg bg-white/20 border border-white/30 focus:outline-none focus:ring-2 focus:ring-secondary text-light placeholder-blue-200"
+          >
+          <button 
+            id="add-participant" 
+            class="ml-3 bg-secondary hover:bg-secondary/90 px-4 py-2 rounded-lg transition-colors flex items-center"
+          >
+            <i class="fa fa-plus"></i>
+          </button>
+        </div>
+      </section>
+      
+      <!-- 摇一摇区域 -->
+      <section class="mb-8">
+        <div id="shake-area" class="relative bg-white/5 rounded-xl p-8 text-center cursor-pointer hover:bg-white/10 transition-colors min-h-[220px] flex flex-col items-center justify-center">
+          <div id="shake-icon" class="text-6xl mb-4 text-secondary">
+            <i class="fa fa-random"></i>
+          </div>
+          <p id="shake-text" class="text-xl">点击或摇动开始</p>
+          
+          <!-- 加载状态 -->
+          <div id="loading-indicator" class="hidden absolute inset-0 flex items-center justify-center bg-dark/80 rounded-xl">
+            <div class="text-center">
+              <div class="inline-block text-4xl text-secondary mb-2 rotate">
+                <i class="fa fa-circle-o-notch"></i>
+              </div>
+              <p class="text-xl">正在随机选择...</p>
+            </div>
+          </div>
+        </div>
+      </section>
+      
+      <!-- 结果显示区域 -->
+      <section id="result-section" class="mb-6 opacity-0 transition-opacity duration-500">
+        <h2 class="text-xl font-semibold mb-4 flex items-center">
+          <i class="fa fa-trophy mr-2 text-yellow-400"></i>选择结果
+        </h2>
+        
+        <div class="bg-white/5 rounded-xl p-6 text-center">
+          <div id="result-photo-container" class="w-32 h-32 mx-auto mb-4 rounded-full overflow-hidden border-4 border-yellow-400 shadow-lg">
+            <img id="result-photo" src="https://picsum.photos/200/200?random=1" alt="选中者照片" class="w-full h-full object-cover">
+          </div>
+          <p id="result-name" class="text-3xl font-bold mb-2">--</p>
+          <p id="result-message" class="text-blue-200">恭喜被选中！</p>
+        </div>
+      </section>
+    </main>
+    
+    <!-- 历史记录 -->
+    <section class="bg-white/10 backdrop-blur-md rounded-2xl p-6 shadow-xl">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-semibold flex items-center">
+          <i class="fa fa-history mr-2 text-accent"></i>历史记录
+        </h2>
+        <button id="clear-history" class="text-blue-300 hover:text-blue-200 text-sm flex items-center">
+          <i class="fa fa-trash-o mr-1"></i>清空
+        </button>
+      </div>
+      
+      <div id="history-container" class="space-y-3 max-h-[25vh] overflow-y-auto pr-2 custom-scrollbar">
+        <!-- 历史记录将通过JavaScript动态添加 -->
+        <div class="text-center py-4 text-blue-200">
+          <p>暂无记录</p>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+  <!-- 页脚 -->
+  <footer class="text-center py-4 text-blue-300 text-sm">
+    <p>© 2025 摇一摇选人小程序 | 摇动设备或点击屏幕开始</p>
+  </footer>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // 状态管理
+      const state = {
+        participants: [],
+        isShaking: false,
+        history: JSON.parse(localStorage.getItem('shakeHistory')) || [],
+        photoMap: new Map() // 存储姓名到照片的映射
+      };
+      
+      // DOM 元素
+      const csvUpload = document.getElementById('csv-upload');
+      const csvUploadInfo = document.getElementById('csv-upload-info');
+      const csvFilename = document.getElementById('csv-filename');
+      const photoUpload = document.getElementById('photo-upload');
+      const photoUploadInfo = document.getElementById('photo-upload-info');
+      const photoFilename = document.getElementById('photo-filename');
+      const photoCount = document.getElementById('photo-count');
+      const importButton = document.getElementById('import-button');
+      const participantsContainer = document.getElementById('participants-container');
+      const participantInput = document.getElementById('participant-input');
+      const addParticipantBtn = document.getElementById('add-participant');
+      const singlePhoto = document.getElementById('single-photo');
+      const singlePhotoPreview = document.getElementById('single-photo-preview');
+      const shakeArea = document.getElementById('shake-area');
+      const shakeIcon = document.getElementById('shake-icon');
+      const shakeText = document.getElementById('shake-text');
+      const loadingIndicator = document.getElementById('loading-indicator');
+      const resultSection = document.getElementById('result-section');
+      const resultName = document.getElementById('result-name');
+      const resultMessage = document.getElementById('result-message');
+      const resultPhoto = document.getElementById('result-photo');
+      const historyContainer = document.getElementById('history-container');
+      const clearHistoryBtn = document.getElementById('clear-history');
+      const participantCount = document.getElementById('participant-count');
+      
+      // 初始化历史记录
+      renderHistory();
+      
+      // 文件上传处理
+      csvUpload.addEventListener('change', function(e) {
+        if (this.files && this.files[0]) {
+          csvFilename.textContent = this.files[0].name;
+          csvUploadInfo.classList.remove('hidden');
+        }
+      });
+      
+      photoUpload.addEventListener('change', function(e) {
+        if (this.files && this.files[0]) {
+          photoFilename.textContent = this.files[0].name;
+          photoUploadInfo.classList.remove('hidden');
+          
+          // 这里只是模拟，实际需要使用JSZip库解压ZIP文件
+          photoCount.textContent = '照片数量: 解析中...';
+          
+          // 模拟解析ZIP文件
+          setTimeout(() => {
+            photoCount.textContent = '照片数量: 10张 (模拟数据)';
+          }, 1000);
+        }
+      });
+      
+      // 导入按钮点击事件
+      importButton.addEventListener('click', function() {
+        // 检查是否选择了文件
+        if (!csvUpload.files.length && !photoUpload.files.length) {
+          alert('请至少选择一个CSV文件或照片ZIP包');
+          return;
+        }
+        
+        // 显示加载状态
+        importButton.disabled = true;
+        importButton.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i>导入中...';
+        
+        // 模拟导入过程
+        setTimeout(() => {
+          // 模拟从CSV文件导入名单
+          if (csvUpload.files.length) {
+            // 清空现有参与者
+            state.participants = [];
+            
+            // 模拟从CSV读取数据
+            const mockNames = ['张三', '李四', '王五', '赵六', '钱七', '孙八', '周九', '吴十', '郑十一', '王十二'];
+            state.participants = mockNames.map((name, index) => ({
+              id: index + 1,
+              name: name,
+              photo: state.photoMap.get(name) || `https://picsum.photos/200/200?random=${index + 1}`
+            }));
+          }
+          
+          // 模拟从ZIP文件导入照片
+          if (photoUpload.files.length) {
+            // 模拟解析照片文件并关联到参与者
+            for (let i = 0; i < state.participants.length; i++) {
+              state.photoMap.set(state.participants[i].name, `https://picsum.photos/200/200?random=${i + 100}`);
+              state.participants[i].photo = state.photoMap.get(state.participants[i].name);
+            }
+          }
+          
+          // 渲染参与者
+          renderParticipants();
+          
+          // 恢复按钮状态
+          importButton.disabled = false;
+          importButton.innerHTML = '<i class="fa fa-check-circle mr-2"></i>导入数据';
+          
+          // 显示成功消息
+          alert(`成功导入 ${state.participants.length} 名参与者`);
+        }, 2000);
+      });
+      
+      // 单个照片上传预览
+      singlePhoto.addEventListener('change', function(e) {
+        if (this.files && this.files[0]) {
+          const reader = new FileReader();
+          
+          reader.onload = function(e) {
+            singlePhotoPreview.querySelector('img').src = e.target.result;
+            singlePhotoPreview.classList.remove('hidden');
+          }
+          
+          reader.readAsDataURL(this.files[0]);
+        }
+      });
+      
+      // 添加参与人员
+      addParticipantBtn.addEventListener('click', addParticipant);
+      participantInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          addParticipant();
+        }
+      });
+      
+      // 摇动事件 - 点击
+      shakeArea.addEventListener('click', function() {
+        if (state.participants.length < 2) {
+          alert('请至少添加2名参与人员');
+          return;
+        }
+        
+        if (!state.isShaking) {
+          startShake();
+        }
+      });
+      
+      // 摇动事件 - 设备运动 (仅在移动设备上有效)
+      let shakeThreshold = 15; // 摇动阈值
+      let lastX, lastY, lastZ;
+      let lastUpdate = 0;
+      
+      if (window.DeviceMotionEvent) {
+        window.addEventListener('devicemotion', function(event) {
+          if (state.isShaking || state.participants.length < 2) return;
+          
+          const acceleration = event.accelerationIncludingGravity;
+          const now = Date.now();
+          
+          // 限制检测频率
+          if ((now - lastUpdate) > 100) {
+            const diffTime = now - lastUpdate;
+            lastUpdate = now;
+            
+            const x = acceleration.x;
+            const y = acceleration.y;
+            const z = acceleration.z;
+            
+            if (lastX !== undefined) {
+              const speed = Math.abs(x + y + z - lastX - lastY - lastZ) / diffTime * 10000;
+              
+              if (speed > shakeThreshold) {
+                startShake();
+              }
+            }
+            
+            lastX = x;
+            lastY = y;
+            lastZ = z;
+          }
+        });
+      }
+      
+      // 添加参与人员
+      function addParticipant() {
+        const name = participantInput.value.trim();
+        
+        if (name && !state.participants.some(p => p.name === name)) {
+          // 获取照片
+          let photo = 'https://picsum.photos/200/200?random=' + (state.participants.length + 1);
+          
+          // 如果有上传的照片
+          if (singlePhoto.files && singlePhoto.files[0]) {
+            photo = URL.createObjectURL(singlePhoto.files[0]);
+          }
+          
+          const newParticipant = {
+            id: Date.now(),
+            name: name,
+            photo: photo
+          };
+          
+          state.participants.push(newParticipant);
+          participantInput.value = '';
+          singlePhoto.value = '';
+          singlePhotoPreview.classList.add('hidden');
+          renderParticipants();
+          
+          // 添加动画效果
+          const lastItem = participantsContainer.lastChild;
+          if (lastItem) {
+            lastItem.classList.add('bg-secondary/20');
+            setTimeout(() => {
+              lastItem.classList.remove('bg-secondary/20');
+            }, 500);
+          }
+        } else if (state.participants.some(p => p.name === name)) {
+          alert('该人员已存在');
+        }
+      }
+      
+      // 渲染参与人员列表
+      function renderParticipants() {
+        participantsContainer.innerHTML = '';
+        participantCount.textContent = state.participants.length;
+        
+        if (state.participants.length === 0) {
+          participantsContainer.innerHTML = `
+            <div class="col-span-full animate-pulse text-center py-12 text-blue-200">
+              <p>请添加参与人员或导入名单</p>
+            </div>
+          `;
+          return;
+        }
+        
+        state.participants.forEach((participant, index) => {
+          const participantEl = document.createElement('div');
+          participantEl.className = 'bg-white/5 rounded-lg hover:bg-white/10 transition-colors p-4 flex items-center';
+          participantEl.innerHTML = `
+            <div class="w-12 h-12 rounded-full overflow-hidden mr-4 flex-shrink-0">
+              <img src="${participant.photo}" alt="${participant.name}" class="w-full h-full object-cover">
+            </div>
+            <div class="flex-1">
+              <div class="flex items-center justify-between">
+                <h3 class="font-medium">${participant.name}</h3>
+                <button class="delete-participant text-red-400 hover:text-red-500 transition-colors" data-id="${participant.id}">
+                  <i class="fa fa-times"></i>
+                </button>
+              </div>
+            </div>
+          `;
+          participantsContainer.appendChild(participantEl);
+        });
+        
+        // 添加删除事件监听
+        document.querySelectorAll('.delete-participant').forEach(btn => {
+          btn.addEventListener('click', function() {
+            const id = parseInt(this.getAttribute('data-id'));
+            state.participants = state.participants.filter(p => p.id !== id);
+            renderParticipants();
+          });
+        });
+      }
+      
+      // 开始摇动
+      function startShake() {
+        state.isShaking = true;
+        resultSection.classList.remove('result-appear');
+        resultSection.style.opacity = '0';
+        
+        // 添加摇动动画
+        shakeArea.classList.add('shake-animation');
+        
+        // 显示加载状态
+        loadingIndicator.classList.remove('hidden');
+        
+        // 随机选择一个人 (延迟显示结果，增加期待感)
+        setTimeout(function() {
+          const randomIndex = Math.floor(Math.random() * state.participants.length);
+          const selectedParticipant = state.participants[randomIndex];
+          
+          // 隐藏加载状态
+          loadingIndicator.classList.remove('hidden');
+          shakeArea.classList.remove('shake-animation');
+          
+          // 显示结果
+          resultName.textContent = selectedParticipant.name;
+          resultPhoto.src = selectedParticipant.photo;
+          resultSection.style.opacity = '1';
+          resultSection.classList.add('result-appear');
+          
+          // 添加到历史记录
+          const timestamp = new Date();
+          const historyItem = {
+            id: selectedParticipant.id,
+            name: selectedParticipant.name,
+            photo: selectedParticipant.photo,
+            time: timestamp.toLocaleString()
+          };
+          state.history.unshift(historyItem);
+          
+          // 最多保留10条历史记录
+          if (state.history.length > 10) {
+            state.history.pop();
+          }
+          
+          // 保存到localStorage
+          localStorage.setItem('shakeHistory', JSON.stringify(state.history));
+          
+          // 渲染历史记录
+          renderHistory();
+          
+          // 重置状态
+          state.isShaking = false;
+        }, 1500);
+      }
+      
+      // 渲染历史记录
+      function renderHistory() {
+        historyContainer.innerHTML = '';
+        
+        if (state.history.length === 0) {
+          historyContainer.innerHTML = `
+            <div class="text-center py-4 text-blue-200">
+              <p>暂无记录</p>
+            </div>
+          `;
+          return;
+        }
+        
+        state.history.forEach((item, index) => {
+          const historyEl = document.createElement('div');
+          historyEl.className = 'flex items-center p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors';
+          historyEl.innerHTML = `
+            <div class="w-10 h-10 rounded-full overflow-hidden mr-3 flex-shrink-0">
+              <img src="${item.photo}" alt="${item.name}" class="w-full h-full object-cover">
+            </div>
+            <div class="flex-1">
+              <div class="flex items-center justify-between">
+                <div>
+                  <h4 class="font-medium">${item.name}</h4>
+                  <p class="text-xs text-blue-300">${item.time}</p>
+                </div>
+                <span class="text-xs text-yellow-400 bg-yellow-900/20 px-2 py-1 rounded">第${index + 1}次</span>
+              </div>
+            </div>
+          `;
+          historyContainer.appendChild(historyEl);
+        });
+      }
+      
+      // 清空历史记录
+      clearHistoryBtn.addEventListener('click', function() {
+        if (confirm('确定要清空所有历史记录吗？')) {
+          state.history = [];
+          localStorage.removeItem('shakeHistory');
+          renderHistory();
+        }
+      });
+    });
+  </script>
+</body>
+</html>
+    
