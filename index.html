@@ -2,26 +2,25 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>摇一摇选人</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>抽签选人系统</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
   <script>
     tailwind.config = {
       theme: {
         extend: {
           colors: {
             primary: '#3B82F6',
-            secondary: '#F97316',
+            secondary: '#10B981',
             accent: '#8B5CF6',
-            dark: '#1E293B',
-            light: '#F8FAFC'
+            neutral: '#1F2937',
+            'neutral-light': '#F3F4F6',
           },
           fontFamily: {
-            sans: ['Inter', 'system-ui', 'sans-serif']
-          }
-        }
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          },
+        },
       }
     }
   </script>
@@ -30,816 +29,690 @@
       .content-auto {
         content-visibility: auto;
       }
-      .shake-animation {
-        animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+      .text-shadow {
+        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
       }
-      .result-appear {
-        animation: fadeIn 0.5s ease-out forwards;
+      .card-hover {
+        @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
       }
-      .rotate {
-        animation: rotate 2s linear infinite;
+      .btn-primary {
+        @apply bg-primary hover:bg-primary/90 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary/50;
       }
-      .custom-scrollbar::-webkit-scrollbar {
-        width: 6px;
+      .btn-secondary {
+        @apply bg-secondary hover:bg-secondary/90 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-secondary/50;
       }
-      .custom-scrollbar::-webkit-scrollbar-track {
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 10px;
+      .btn-accent {
+        @apply bg-accent hover:bg-accent/90 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-accent/50;
       }
-      .custom-scrollbar::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.3);
-        border-radius: 10px;
+      .input-field {
+        @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition duration-200;
       }
-      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-        background: rgba(255, 255, 255, 0.5);
+      .section-title {
+        @apply text-2xl font-bold text-neutral mb-4 border-b-2 border-primary/20 pb-2;
       }
-    }
-    
-    @keyframes shake {
-      10%, 90% { transform: translate3d(-1px, 0, 0); }
-      20%, 80% { transform: translate3d(2px, 0, 0); }
-      30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
-      40%, 60% { transform: translate3d(4px, 0, 0); }
-    }
-    
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    
-    @keyframes rotate {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
+      .lottery-animation {
+        animation: lottery 0.5s infinite alternate;
+      }
+      @keyframes lottery {
+        0% { transform: scale(1); box-shadow: 0 0 5px rgba(59, 130, 246, 0.5); }
+        100% { transform: scale(1.05); box-shadow: 0 0 20px rgba(59, 130, 246, 0.8); }
+      }
     }
   </style>
 </head>
-<body class="bg-gradient-to-br from-dark to-primary min-h-screen text-light font-sans">
-  <div class="container mx-auto px-4 py-8 max-w-6xl">
-    <!-- 标题区域 -->
-    <header class="text-center mb-8">
-      <h1 class="text-[clamp(2rem,5vw,3rem)] font-bold mb-2 tracking-tight">摇一摇选人</h1>
-      <p class="text-blue-200 text-lg">通过摇动手机或点击按钮随机选择一个人</p>
-      <div class="flex justify-center mt-4">
-        <span id="room-id" class="bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full text-sm font-medium">
-          房间ID: <span class="text-secondary font-semibold">SHAKE-ABC123</span>
-        </span>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+  <!-- 导航栏 -->
+  <header class="bg-white shadow-md sticky top-0 z-50">
+    <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+      <div class="flex items-center space-x-2">
+        <i class="fa fa-random text-primary text-2xl"></i>
+        <h1 class="text-xl md:text-2xl font-bold text-neutral">抽签选人系统</h1>
       </div>
-    </header>
-    
-    <!-- 主要内容区域 -->
-    <main class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-      <!-- 左侧面板 - 参与人员管理 -->
+      <div class="flex items-center space-x-4">
+        <button id="theme-toggle" class="p-2 rounded-full hover:bg-gray-100 transition-colors">
+          <i class="fa fa-moon-o text-neutral"></i>
+        </button>
+        <button id="help-button" class="p-2 rounded-full hover:bg-gray-100 transition-colors">
+          <i class="fa fa-question-circle text-neutral"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 主内容区 -->
+  <main class="flex-grow container mx-auto px-4 py-8">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <!-- 左侧：导入区域 -->
       <div class="lg:col-span-1">
-        <div class="bg-white/10 backdrop-blur-md rounded-2xl p-6 shadow-xl h-full">
-          <h2 class="text-xl font-semibold mb-4 flex items-center">
-            <i class="fa fa-users mr-2 text-secondary"></i>参与人员管理
+        <div class="bg-white rounded-xl shadow-sm p-6 card-hover">
+          <h2 class="section-title">
+            <i class="fa fa-users text-primary mr-2"></i>导入参与者
           </h2>
           
-          <!-- 导入选项 -->
+          <!-- 批量输入姓名 -->
           <div class="mb-6">
-            <h3 class="text-md font-medium mb-3 text-blue-200">批量导入</h3>
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block text-sm font-medium mb-1">CSV文件</label>
-                <div class="relative">
-                  <input type="file" id="csv-import" accept=".csv" class="hidden" />
-                  <button onclick="document.getElementById('csv-import').click()" class="w-full bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg py-2 flex items-center justify-center transition-colors">
-                    <i class="fa fa-file-text-o mr-2"></i> 选择CSV
-                  </button>
-                </div>
-              </div>
-              <div>
-                <label class="block text-sm font-medium mb-1">照片文件夹</label>
-                <div class="relative">
-                  <input type="file" id="photos-import" accept="image/*" multiple directory webkitdirectory class="hidden" />
-                  <button onclick="document.getElementById('photos-import').click()" class="w-full bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg py-2 flex items-center justify-center transition-colors">
-                    <i class="fa fa-folder-open-o mr-2"></i> 选择照片
-                  </button>
-                </div>
-              </div>
-            </div>
-            <div class="mt-3 text-xs text-blue-300">
-              <p>CSV格式: 姓名,照片文件名（无扩展名）</p>
-              <p>照片文件名需与CSV中一致（如：张三.jpg → 张三）</p>
-            </div>
+            <label for="name-list" class="block text-sm font-medium text-gray-700 mb-2">批量输入姓名（每行一个）</label>
+            <textarea id="name-list" rows="5" placeholder="张三&#10;李四&#10;王五" class="input-field"></textarea>
           </div>
           
-          <!-- 参与人员列表 -->
-          <div class="mb-4">
-            <div class="flex justify-between items-center mb-3">
-              <h3 class="text-md font-medium">参与人员列表</h3>
-              <span id="participant-count" class="bg-secondary/20 text-secondary text-xs px-2 py-1 rounded-full">
-                0人
-              </span>
-            </div>
-            
-            <div id="participants-container" class="space-y-3 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
-              <!-- 参与人员将通过JavaScript动态添加 -->
-              <div class="animate-pulse text-center py-6 text-blue-200">
-                <p>请添加或导入参与人员</p>
+          <!-- 上传照片 -->
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">上传照片（可选）</label>
+            <div id="photo-upload-container" class="space-y-3">
+              <div class="photo-upload-item">
+                <div class="flex items-center space-x-3">
+                  <input type="text" placeholder="姓名" class="input-field w-1/2">
+                  <input type="file" accept="image/*" class="hidden" id="photo-1">
+                  <label for="photo-1" class="btn-primary text-sm flex items-center">
+                    <i class="fa fa-upload mr-1"></i> 选择照片
+                  </label>
+                  <div class="preview-container w-12 h-12 rounded-full overflow-hidden border-2 border-gray-200 bg-gray-100">
+                    <img id="preview-1" class="w-full h-full object-cover" src="https://picsum.photos/seed/default/200/200" alt="用户照片预览">
+                  </div>
+                </div>
               </div>
             </div>
+            <button id="add-upload-field" class="btn-secondary mt-3 text-sm flex items-center">
+              <i class="fa fa-plus-circle mr-1"></i> 添加更多
+            </button>
           </div>
           
-          <!-- 添加人员表单 -->
-          <div>
-            <h3 class="text-md font-medium mb-3 text-blue-200">手动添加</h3>
-            <div class="flex">
-              <input 
-                type="text" 
-                id="participant-input" 
-                placeholder="输入姓名" 
-                class="flex-1 px-4 py-2 rounded-l-lg bg-white/20 border border-white/30 focus:outline-none focus:ring-2 focus:ring-secondary text-light placeholder-blue-200"
-              >
-              <button 
-                id="add-participant" 
-                class="bg-secondary hover:bg-secondary/90 px-4 py-2 rounded-r-lg transition-colors flex items-center"
-              >
-                <i class="fa fa-plus"></i>
-              </button>
-            </div>
-            <div class="mt-3 flex gap-2">
-              <button id="clear-all" class="text-xs bg-red-500/20 hover:bg-red-500/30 text-red-400 px-3 py-1 rounded transition-colors">
-                <i class="fa fa-trash-o mr-1"></i>清空列表
-              </button>
-              <button id="random-fill" class="text-xs bg-green-500/20 hover:bg-green-500/30 text-green-400 px-3 py-1 rounded transition-colors">
-                <i class="fa fa-random mr-1"></i>随机填充
-              </button>
+          <!-- 导入按钮 -->
+          <div class="flex justify-between">
+            <button id="import-names" class="btn-primary flex items-center">
+              <i class="fa fa-download mr-1"></i> 导入名单
+            </button>
+            <button id="clear-all" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition-all duration-200">
+              <i class="fa fa-trash mr-1"></i> 清空
+            </button>
+          </div>
+        </div>
+        
+        <!-- 参与者列表 -->
+        <div class="bg-white rounded-xl shadow-sm p-6 mt-6 card-hover">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="section-title">
+              <i class="fa fa-list text-primary mr-2"></i>参与者列表
+            </h2>
+            <span id="participant-count" class="bg-primary/10 text-primary text-sm font-medium px-2.5 py-0.5 rounded-full">0人</span>
+          </div>
+          
+          <div id="participant-list" class="space-y-2 max-h-60 overflow-y-auto pr-1">
+            <div class="text-center text-gray-500 py-8">
+              <i class="fa fa-info-circle text-3xl mb-2"></i>
+              <p>暂无参与者，请先导入名单</p>
             </div>
           </div>
         </div>
       </div>
       
-      <!-- 中间面板 - 摇一摇和结果 -->
-      <div class="lg:col-span-1">
-        <div class="bg-white/10 backdrop-blur-md rounded-2xl p-6 shadow-xl h-full flex flex-col">
-          <!-- 摇一摇区域 -->
-          <div class="flex-1">
-            <h2 class="text-xl font-semibold mb-4 flex items-center">
-              <i class="fa fa-random mr-2 text-yellow-400"></i>摇一摇
-            </h2>
-            
-            <div id="shake-area" class="relative bg-white/5 rounded-xl p-8 text-center cursor-pointer hover:bg-white/10 transition-colors min-h-[300px] flex flex-col items-center justify-center">
-              <div id="shake-icon" class="text-6xl mb-4 text-yellow-400">
-                <i class="fa fa-random"></i>
+      <!-- 右侧：抽签区域 -->
+      <div class="lg:col-span-2">
+        <div class="bg-white rounded-xl shadow-sm p-6 card-hover h-full flex flex-col">
+          <h2 class="section-title">
+            <i class="fa fa-random text-primary mr-2"></i>抽签选人
+          </h2>
+          
+          <!-- 抽签结果显示 -->
+          <div class="flex-grow flex flex-col items-center justify-center p-8">
+            <div id="lottery-result" class="w-full max-w-md aspect-square rounded-2xl bg-gray-100 flex items-center justify-center mb-8 overflow-hidden relative">
+              <div id="lottery-placeholder" class="text-center text-gray-400">
+                <i class="fa fa-hand-pointer-o text-6xl mb-4"></i>
+                <p class="text-xl">点击开始按钮<br>随机抽取参与者</p>
               </div>
-              <p id="shake-text" class="text-xl">点击或摇动开始</p>
-              
-              <!-- 加载状态 -->
-              <div id="loading-indicator" class="hidden absolute inset-0 flex items-center justify-center bg-dark/80 rounded-xl">
+              <div id="lottery-animation" class="hidden absolute inset-0 bg-primary/5 flex items-center justify-center">
                 <div class="text-center">
-                  <div class="inline-block text-4xl text-secondary mb-2 rotate">
-                    <i class="fa fa-circle-o-notch"></i>
-                  </div>
-                  <p class="text-xl">正在随机选择...</p>
+                  <p id="lottery-name" class="text-4xl font-bold text-neutral">--</p>
+                  <img id="lottery-image" class="w-32 h-32 rounded-full mx-auto my-4 object-cover" src="https://picsum.photos/seed/default/200/200" alt="参与者照片">
+                </div>
+              </div>
+              <div id="lottery-final" class="hidden absolute inset-0 flex items-center justify-center">
+                <div class="text-center">
+                  <p id="final-name" class="text-5xl font-bold text-primary text-shadow">--</p>
+                  <img id="final-image" class="w-40 h-40 rounded-full mx-auto my-4 border-4 border-primary object-cover shadow-lg" src="https://picsum.photos/seed/default/200/200" alt="参与者照片">
                 </div>
               </div>
             </div>
             
-            <!-- 结果显示区域 -->
-            <div id="result-section" class="mt-6 opacity-0 transition-opacity duration-500">
-              <h3 class="text-md font-medium mb-3">选择结果</h3>
-              
-              <div class="bg-white/5 rounded-xl p-6 text-center">
-                <div id="result-image-container" class="w-32 h-32 mx-auto mb-4 rounded-full overflow-hidden border-4 border-yellow-400 shadow-lg">
-                  <img id="result-image" src="https://picsum.photos/200/200?random=1" alt="选中者照片" class="w-full h-full object-cover">
-                </div>
-                <p id="result-name" class="text-2xl font-bold mb-1">--</p>
-                <p id="result-message" class="text-blue-200">恭喜被选中！</p>
+            <!-- 历史记录 -->
+            <div class="w-full mt-8">
+              <h3 class="text-lg font-semibold text-neutral mb-3">
+                <i class="fa fa-history text-primary mr-2"></i>抽取历史
+              </h3>
+              <div id="history-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-h-40 overflow-y-auto">
+                <!-- 历史记录将在这里动态添加 -->
               </div>
             </div>
           </div>
           
-          <!-- 统计信息 -->
-          <div class="mt-6">
-            <h3 class="text-md font-medium mb-3">选择统计</h3>
-            <div class="bg-white/5 rounded-xl p-4">
-              <canvas id="selection-chart" height="120"></canvas>
-            </div>
+          <!-- 控制按钮 -->
+          <div class="flex justify-center mt-6 space-x-4">
+            <button id="start-lottery" class="btn-primary text-lg flex items-center">
+              <i class="fa fa-play-circle mr-2"></i> 开始抽签
+            </button>
+            <button id="reset-lottery" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition-all duration-200 text-lg flex items-center">
+              <i class="fa fa-refresh mr-2"></i> 重置
+            </button>
           </div>
         </div>
       </div>
-      
-      <!-- 右侧面板 - 历史记录和设置 -->
-      <div class="lg:col-span-1">
-        <div class="bg-white/10 backdrop-blur-md rounded-2xl p-6 shadow-xl h-full flex flex-col">
-          <!-- 历史记录 -->
-          <div class="flex-1">
-            <h2 class="text-xl font-semibold mb-4 flex items-center">
-              <i class="fa fa-history mr-2 text-accent"></i>选择历史
-            </h2>
-            
-            <div id="history-container" class="space-y-3 max-h-[55vh] overflow-y-auto pr-2 custom-scrollbar">
-              <!-- 历史记录将通过JavaScript动态添加 -->
-              <div class="text-center py-6 text-blue-200">
-                <p>暂无记录</p>
-              </div>
-            </div>
+    </div>
+  </main>
+
+  <!-- 页脚 -->
+  <footer class="bg-white border-t border-gray-200 mt-12">
+    <div class="container mx-auto px-4 py-6">
+      <div class="flex flex-col md:flex-row justify-between items-center">
+        <div class="text-gray-600 mb-4 md:mb-0">
+          <p>© 2025 抽签选人系统 - 公平、随机的选择工具</p>
+        </div>
+        <div class="flex space-x-4">
+          <a href="#" class="text-gray-500 hover:text-primary transition-colors">
+            <i class="fa fa-github text-xl"></i>
+          </a>
+          <a href="#" class="text-gray-500 hover:text-primary transition-colors">
+            <i class="fa fa-twitter text-xl"></i>
+          </a>
+          <a href="#" class="text-gray-500 hover:text-primary transition-colors">
+            <i class="fa fa-envelope text-xl"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- 帮助模态框 -->
+  <div id="help-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div class="p-6 border-b border-gray-200">
+        <div class="flex justify-between items-center">
+          <h3 class="text-xl font-bold text-neutral">使用帮助</h3>
+          <button id="close-help" class="text-gray-400 hover:text-gray-500">
+            <i class="fa fa-times text-xl"></i>
+          </button>
+        </div>
+      </div>
+      <div class="p-6">
+        <div class="space-y-6">
+          <div>
+            <h4 class="text-lg font-semibold text-primary mb-2">1. 导入参与者</h4>
+            <p class="text-gray-700">在左侧文本框中批量输入参与者姓名（每行一个），也可以为每个参与者上传对应的照片。点击"添加更多"可以增加照片上传字段。</p>
           </div>
-          
-          <!-- 房间设置 -->
-          <div class="mt-6">
-            <h3 class="text-md font-medium mb-3">房间设置</h3>
-            <div class="bg-white/5 rounded-xl p-4">
-              <div class="space-y-3">
-                <div class="flex items-center justify-between">
-                  <span class="text-sm">允许重复选择</span>
-                  <label class="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" id="allow-repeat" class="sr-only peer" checked>
-                    <div class="w-9 h-5 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-secondary"></div>
-                  </label>
-                </div>
-                
-                <div class="flex items-center justify-between">
-                  <span class="text-sm">自动清除已选</span>
-                  <label class="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" id="auto-remove" class="sr-only peer">
-                    <div class="w-9 h-5 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-secondary"></div>
-                  </label>
-                </div>
-                
-                <div class="flex items-center justify-between">
-                  <span class="text-sm">摇动灵敏度</span>
-                  <div class="flex items-center space-x-2">
-                    <i class="fa fa-bell-o text-xs"></i>
-                    <input type="range" id="sensitivity" min="5" max="30" value="15" class="w-24 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-secondary">
-                    <i class="fa fa-bell text-xs"></i>
-                  </div>
-                </div>
-                
-                <button id="copy-link" class="w-full mt-2 bg-accent hover:bg-accent/90 text-white font-medium py-2 rounded-lg transition-colors flex items-center justify-center">
-                  <i class="fa fa-link mr-2"></i>复制房间链接
-                </button>
-              </div>
-            </div>
+          <div>
+            <h4 class="text-lg font-semibold text-primary mb-2">2. 开始抽签</h4>
+            <p class="text-gray-700">导入参与者后，点击"开始抽签"按钮，系统会随机选择一名参与者。再次点击按钮停止抽签并显示最终结果。</p>
+          </div>
+          <div>
+            <h4 class="text-lg font-semibold text-primary mb-2">3. 查看历史记录</h4>
+            <p class="text-gray-700">每次抽签结果都会保存在历史记录中，方便查看之前抽取的参与者。</p>
+          </div>
+          <div>
+            <h4 class="text-lg font-semibold text-primary mb-2">4. 重置功能</h4>
+            <p class="text-gray-700">点击"重置"按钮可以清除当前抽签状态，但不会删除参与者列表。点击"清空"按钮可以清除所有参与者信息。</p>
           </div>
         </div>
       </div>
-    </main>
-    
-    <!-- 页脚 -->
-    <footer class="text-center py-4 text-blue-300 text-sm">
-      <p>© 2025 摇一摇选人小程序 | 摇动设备或点击屏幕开始</p>
-    </footer>
+      <div class="p-6 border-t border-gray-200 flex justify-end">
+        <button id="confirm-help" class="btn-primary">
+          我知道了
+        </button>
+      </div>
+    </div>
   </div>
 
   <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      // 状态管理
-      const state = {
-        participants: [],
-        photos: {},
-        isShaking: false,
-        history: JSON.parse(localStorage.getItem('shakeHistory')) || [],
-        selectionCount: {},
-        settings: {
-          allowRepeat: true,
-          autoRemove: false,
-          sensitivity: 15
-        },
-        roomId: generateRoomId()
-      };
+    // 参与者数据
+    let participants = [];
+    let selectedParticipants = [];
+    let isLottering = false;
+    let lotteryInterval;
+    
+    // DOM 元素
+    const nameList = document.getElementById('name-list');
+    const photoUploadContainer = document.getElementById('photo-upload-container');
+    const addUploadField = document.getElementById('add-upload-field');
+    const importNames = document.getElementById('import-names');
+    const clearAll = document.getElementById('clear-all');
+    const participantList = document.getElementById('participant-list');
+    const participantCount = document.getElementById('participant-count');
+    const startLottery = document.getElementById('start-lottery');
+    const resetLottery = document.getElementById('reset-lottery');
+    const lotteryResult = document.getElementById('lottery-result');
+    const lotteryPlaceholder = document.getElementById('lottery-placeholder');
+    const lotteryAnimation = document.getElementById('lottery-animation');
+    const lotteryFinal = document.getElementById('lottery-final');
+    const lotteryName = document.getElementById('lottery-name');
+    const lotteryImage = document.getElementById('lottery-image');
+    const finalName = document.getElementById('final-name');
+    const finalImage = document.getElementById('final-image');
+    const historyList = document.getElementById('history-list');
+    const helpButton = document.getElementById('help-button');
+    const helpModal = document.getElementById('help-modal');
+    const closeHelp = document.getElementById('close-help');
+    const confirmHelp = document.getElementById('confirm-help');
+    const themeToggle = document.getElementById('theme-toggle');
+    
+    // 初始化
+    init();
+    
+    function init() {
+      // 添加初始照片上传字段
+      addPhotoUploadField();
       
-      // DOM 元素
-      const participantsContainer = document.getElementById('participants-container');
-      const participantInput = document.getElementById('participant-input');
-      const addParticipantBtn = document.getElementById('add-participant');
-      const shakeArea = document.getElementById('shake-area');
-      const shakeIcon = document.getElementById('shake-icon');
-      const shakeText = document.getElementById('shake-text');
-      const loadingIndicator = document.getElementById('loading-indicator');
-      const resultSection = document.getElementById('result-section');
-      const resultName = document.getElementById('result-name');
-      const resultMessage = document.getElementById('result-message');
-      const resultImage = document.getElementById('result-image');
-      const historyContainer = document.getElementById('history-container');
-      const participantCount = document.getElementById('participant-count');
-      const csvImport = document.getElementById('csv-import');
-      const photosImport = document.getElementById('photos-import');
-      const clearAllBtn = document.getElementById('clear-all');
-      const randomFillBtn = document.getElementById('random-fill');
-      const allowRepeatCheckbox = document.getElementById('allow-repeat');
-      const autoRemoveCheckbox = document.getElementById('auto-remove');
-      const sensitivityRange = document.getElementById('sensitivity');
-      const copyLinkBtn = document.getElementById('copy-link');
-      const roomIdElement = document.getElementById('room-id');
+      // 事件监听器
+      addUploadField.addEventListener('click', addPhotoUploadField);
+      importNames.addEventListener('click', importParticipants);
+      clearAll.addEventListener('click', clearAllData);
+      startLottery.addEventListener('click', toggleLottery);
+      resetLottery.addEventListener('click', resetLotteryState);
+      helpButton.addEventListener('click', showHelpModal);
+      closeHelp.addEventListener('click', hideHelpModal);
+      confirmHelp.addEventListener('click', hideHelpModal);
+      themeToggle.addEventListener('click', toggleTheme);
       
-      // 更新房间ID显示
-      roomIdElement.querySelector('.text-secondary').textContent = state.roomId;
-      
-      // 初始化图表
-      const ctx = document.getElementById('selection-chart').getContext('2d');
-      const selectionChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: [],
-          datasets: [{
-            label: '被选中次数',
-            data: [],
-            backgroundColor: 'rgba(139, 92, 246, 0.6)',
-            borderColor: 'rgba(139, 92, 246, 1)',
-            borderWidth: 1
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            y: {
-              beginAtZero: true,
-              grid: {
-                color: 'rgba(255, 255, 255, 0.1)'
-              },
-              ticks: {
-                color: 'rgba(255, 255, 255, 0.7)'
-              }
-            },
-            x: {
-              grid: {
-                display: false
-              },
-              ticks: {
-                color: 'rgba(255, 255, 255, 0.7)'
-              }
-            }
-          },
-          plugins: {
-            legend: {
-              display: false
-            }
-          }
-        }
+      // 为初始上传字段添加文件选择事件
+      document.querySelectorAll('input[type="file"]').forEach((input, index) => {
+        input.addEventListener('change', (e) => handleFileSelect(e, index + 1));
       });
       
-      // 初始化设置
-      allowRepeatCheckbox.checked = state.settings.allowRepeat;
-      autoRemoveCheckbox.checked = state.settings.autoRemove;
-      sensitivityRange.value = state.settings.sensitivity;
+      // 初始化主题
+      initTheme();
+    }
+    
+    // 添加照片上传字段
+    function addPhotoUploadField() {
+      const count = document.querySelectorAll('.photo-upload-item').length + 1;
+      const item = document.createElement('div');
+      item.className = 'photo-upload-item';
+      item.innerHTML = `
+        <div class="flex items-center space-x-3">
+          <input type="text" placeholder="姓名" class="input-field w-1/2">
+          <input type="file" accept="image/*" class="hidden" id="photo-${count}">
+          <label for="photo-${count}" class="btn-primary text-sm flex items-center">
+            <i class="fa fa-upload mr-1"></i> 选择照片
+          </label>
+          <div class="preview-container w-12 h-12 rounded-full overflow-hidden border-2 border-gray-200 bg-gray-100">
+            <img id="preview-${count}" class="w-full h-full object-cover" src="https://picsum.photos/seed/default/200/200" alt="用户照片预览">
+          </div>
+          <button type="button" class="text-red-500 hover:text-red-700 p-2" onclick="removeUploadField(this)">
+            <i class="fa fa-times-circle"></i>
+          </button>
+        </div>
+      `;
+      photoUploadContainer.appendChild(item);
       
-      // 加载本地存储中的参与者数据
-      const savedParticipants = JSON.parse(localStorage.getItem('shakeParticipants')) || [];
-      const savedPhotos = JSON.parse(localStorage.getItem('shakePhotos')) || {};
+      // 为新添加的文件输入框添加事件监听
+      const fileInput = document.getElementById(`photo-${count}`);
+      fileInput.addEventListener('change', (e) => handleFileSelect(e, count));
+    }
+    
+    // 移除上传字段
+    function removeUploadField(button) {
+      const item = button.closest('.photo-upload-item');
+      item.remove();
+    }
+    
+    // 处理文件选择
+    function handleFileSelect(event, index) {
+      const file = event.target.files[0];
+      const preview = document.getElementById(`preview-${index}`);
       
-      if (savedParticipants.length > 0) {
-        state.participants = savedParticipants;
-        state.photos = savedPhotos;
-        renderParticipants();
-      }
-      
-      // 初始化历史记录
-      renderHistory();
-      updateChart();
-      
-      // 添加参与人员
-      addParticipantBtn.addEventListener('click', addParticipant);
-      participantInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-          addParticipant();
-        }
-      });
-      
-      // 摇动事件 - 点击
-      shakeArea.addEventListener('click', function() {
-        if (state.participants.length < 2) {
-          alert('请至少添加2名参与人员');
-          return;
-        }
-        
-        if (!state.isShaking) {
-          startShake();
-        }
-      });
-      
-      // 摇动事件 - 设备运动
-      let shakeThreshold = state.settings.sensitivity;
-      let lastX, lastY, lastZ;
-      let lastUpdate = 0;
-      
-      if (window.DeviceMotionEvent) {
-        window.addEventListener('devicemotion', function(event) {
-          if (state.isShaking || state.participants.length < 2) return;
-          
-          const acceleration = event.accelerationIncludingGravity;
-          const now = Date.now();
-          
-          // 限制检测频率
-          if ((now - lastUpdate) > 100) {
-            const diffTime = now - lastUpdate;
-            lastUpdate = now;
-            
-            const x = acceleration.x;
-            const y = acceleration.y;
-            const z = acceleration.z;
-            
-            if (lastX !== undefined) {
-              const speed = Math.abs(x + y + z - lastX - lastY - lastZ) / diffTime * 10000;
-              
-              if (speed > shakeThreshold) {
-                startShake();
-              }
-            }
-            
-            lastX = x;
-            lastY = y;
-            lastZ = z;
-          }
-        });
-      }
-      
-      // CSV导入
-      csvImport.addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (!file) return;
-        
+      if (file) {
         const reader = new FileReader();
-        reader.onload = function(event) {
-          const content = event.target.result;
-          const lines = content.split('\n');
+        
+        reader.onload = function(e) {
+          preview.src = e.target.result;
+        }
+        
+        reader.readAsDataURL(file);
+      }
+    }
+    
+    // 导入参与者
+    function importParticipants() {
+      // 从文本框获取姓名
+      const names = nameList.value.split('\n')
+        .map(name => name.trim())
+        .filter(name => name.length > 0);
+      
+      // 从上传字段获取带照片的参与者
+      const photoItems = document.querySelectorAll('.photo-upload-item');
+      photoItems.forEach(item => {
+        const nameInput = item.querySelector('input[type="text"]');
+        const fileInput = item.querySelector('input[type="file"]');
+        const preview = item.querySelector('img');
+        
+        if (nameInput.value.trim()) {
+          const participant = {
+            name: nameInput.value.trim(),
+            photo: fileInput.files.length > 0 ? preview.src : `https://picsum.photos/seed/${nameInput.value.trim()}/200/200`
+          };
           
-          let newParticipants = [];
-          
-          lines.forEach(line => {
-            if (line.trim() === '') return;
-            
-            const parts = line.split(',');
-            const name = parts[0].trim();
-            const photoKey = parts[1] ? parts[1].trim() : name;
-            
-            if (name) {
-              newParticipants.push({ name, photoKey });
-              
-              // 如果没有对应的照片，使用默认照片
-              if (!state.photos[photoKey]) {
-                state.photos[photoKey] = `https://picsum.photos/200/200?random=${state.participants.length + newParticipants.length + 1}`;
-              }
-            }
-          });
-          
-          if (newParticipants.length > 0) {
-            // 去重
-            newParticipants = newParticipants.filter(p => !state.participants.some(sp => sp.name === p.name));
-            
-            if (newParticipants.length > 0) {
-              state.participants = [...state.participants, ...newParticipants];
-              saveParticipants();
-              renderParticipants();
-              alert(`成功导入 ${newParticipants.length} 名参与者`);
-            } else {
-              alert('没有新的参与者被导入');
-            }
+          // 检查是否已存在同名参与者
+          const existingIndex = participants.findIndex(p => p.name === participant.name);
+          if (existingIndex !== -1) {
+            participants[existingIndex] = participant;
           } else {
-            alert('无法解析CSV文件');
+            participants.push(participant);
           }
-        };
-        
-        reader.readAsText(file);
-      });
-      
-      // 照片导入
-      photosImport.addEventListener('change', function(e) {
-        const files = e.target.files;
-        if (!files || files.length === 0) return;
-        
-        let photoCount = 0;
-        
-        for (let i = 0; i < files.length; i++) {
-          const file = files[i];
-          if (!file.type.startsWith('image/')) continue;
-          
-          // 获取文件名（不含扩展名）作为键
-          const fileName = file.name.split('.').slice(0, -1).join('.');
-          
-          // 创建图片URL
-          const imageUrl = URL.createObjectURL(file);
-          
-          // 保存到状态
-          state.photos[fileName] = imageUrl;
-          photoCount++;
-        }
-        
-        if (photoCount > 0) {
-          saveParticipants();
-          renderParticipants();
-          alert(`成功导入 ${photoCount} 张照片`);
         }
       });
       
-      // 清空所有参与者
-      clearAllBtn.addEventListener('click', function() {
-        if (confirm('确定要清空所有参与者吗？')) {
-          state.participants = [];
-          saveParticipants();
-          renderParticipants();
-        }
-      });
-      
-      // 随机填充
-      randomFillBtn.addEventListener('click', function() {
-        const defaultNames = [
-          '张三', '李四', '王五', '赵六', '钱七', 
-          '孙八', '周九', '吴十', '郑十一', '王十二'
-        ];
-        
-        // 只添加不存在的名字
-        const newNames = defaultNames.filter(name => !state.participants.some(p => p.name === name));
-        
-        if (newNames.length > 0) {
-          const newParticipants = newNames.map(name => ({
+      // 添加纯文本姓名的参与者
+      names.forEach(name => {
+        // 检查是否已存在同名参与者
+        if (!participants.some(p => p.name === name)) {
+          participants.push({
             name,
-            photoKey: name
-          }));
-          
-          state.participants = [...state.participants, ...newParticipants];
-          
-          // 为新添加的参与者设置默认照片
-          newParticipants.forEach((p, index) => {
-            if (!state.photos[p.photoKey]) {
-              state.photos[p.photoKey] = `https://picsum.photos/200/200?random=${state.participants.length - newParticipants.length + index + 1}`;
-            }
+            photo: `https://picsum.photos/seed/${name}/200/200`
           });
-          
-          saveParticipants();
-          renderParticipants();
-          alert(`已添加 ${newParticipants.length} 名参与者`);
-        } else {
-          alert('所有默认参与者已存在');
         }
       });
       
-      // 设置变更
-      allowRepeatCheckbox.addEventListener('change', function() {
-        state.settings.allowRepeat = this.checked;
-      });
+      // 更新参与者列表
+      updateParticipantList();
       
-      autoRemoveCheckbox.addEventListener('change', function() {
-        state.settings.autoRemove = this.checked;
-      });
+      // 清空输入
+      nameList.value = '';
       
-      sensitivityRange.addEventListener('input', function() {
-        state.settings.sensitivity = parseInt(this.value);
-        shakeThreshold = state.settings.sensitivity;
-      });
+      // 显示成功消息
+      showNotification('参与者导入成功！', 'success');
+    }
+    
+    // 更新参与者列表
+    function updateParticipantList() {
+      participantList.innerHTML = '';
       
-      // 复制链接
-      copyLinkBtn.addEventListener('click', function() {
-        const currentUrl = window.location.href;
-        const urlWithRoomId = `${currentUrl}?room=${state.roomId}`;
-        
-        navigator.clipboard.writeText(urlWithRoomId)
-          .then(() => {
-            alert('房间链接已复制到剪贴板');
-          })
-          .catch(err => {
-            console.error('无法复制链接: ', err);
-            alert('复制失败，请手动复制房间ID');
-          });
-      });
-      
-      // 添加参与人员
-      function addParticipant() {
-        const name = participantInput.value.trim();
-        
-        if (name && !state.participants.some(p => p.name === name)) {
-          const newParticipant = {
-            name,
-            photoKey: name
-          };
-          
-          state.participants.push(newParticipant);
-          
-          // 如果没有对应的照片，使用默认照片
-          if (!state.photos[name]) {
-            state.photos[name] = `https://picsum.photos/200/200?random=${state.participants.length}`;
-          }
-          
-          participantInput.value = '';
-          saveParticipants();
-          renderParticipants();
-          
-          // 添加动画效果
-          const lastItem = participantsContainer.lastChild;
-          if (lastItem) {
-            lastItem.classList.add('bg-secondary/20');
-            setTimeout(() => {
-              lastItem.classList.remove('bg-secondary/20');
-            }, 500);
-          }
-        } else if (state.participants.some(p => p.name === name)) {
-          alert('该人员已存在');
-        }
-      }
-      
-      // 渲染参与人员列表
-      function renderParticipants() {
-        participantsContainer.innerHTML = '';
-        participantCount.textContent = `${state.participants.length}人`;
-        
-        if (state.participants.length === 0) {
-          participantsContainer.innerHTML = `
-            <div class="animate-pulse text-center py-6 text-blue-200">
-              <p>请添加或导入参与人员</p>
-            </div>
+      if (participants.length === 0) {
+        participantList.innerHTML = `
+          <div class="text-center text-gray-500 py-8">
+            <i class="fa fa-info-circle text-3xl mb-2"></i>
+            <p>暂无参与者，请先导入名单</p>
+          </div>
+        `;
+      } else {
+        participants.forEach((participant, index) => {
+          const item = document.createElement('div');
+          item.className = 'flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors';
+          item.innerHTML = `
+            <img src="${participant.photo}" alt="${participant.name}" class="w-10 h-10 rounded-full object-cover mr-3">
+            <span class="flex-grow">${participant.name}</span>
+            <button type="button" class="text-gray-400 hover:text-red-500 p-1" onclick="removeParticipant(${index})">
+              <i class="fa fa-times-circle"></i>
+            </button>
           `;
-          return;
-        }
-        
-        state.participants.forEach((participant, index) => {
-          const photoUrl = state.photos[participant.photoKey] || `https://picsum.photos/200/200?random=${index + 1}`;
-          
-          const participantEl = document.createElement('div');
-          participantEl.className = 'flex items-center justify-between p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors';
-          participantEl.innerHTML = `
-            <div class="flex items-center">
-              <div class="w-8 h-8 rounded-full overflow-hidden mr-3 border border-white/20">
-                <img src="${photoUrl}" alt="${participant.name}" class="w-full h-full object-cover">
-              </div>
-              <span>${participant.name}</span>
-            </div>
-            <div class="flex items-center space-x-2">
-              <button class="remove-participant text-red-400 hover:text-red-500 transition-colors" data-index="${index}">
-                <i class="fa fa-times"></i>
-              </button>
-            </div>
-          `;
-          participantsContainer.appendChild(participantEl);
-        });
-        
-        // 添加删除事件监听
-        document.querySelectorAll('.remove-participant').forEach(btn => {
-          btn.addEventListener('click', function() {
-            const index = parseInt(this.getAttribute('data-index'));
-            state.participants.splice(index, 1);
-            saveParticipants();
-            renderParticipants();
-          });
+          participantList.appendChild(item);
         });
       }
       
-      // 开始摇动
-      function startShake() {
-        state.isShaking = true;
-        resultSection.classList.remove('result-appear');
-        resultSection.style.opacity = '0';
-        
-        // 显示加载状态
-        loadingIndicator.classList.remove('hidden');
-        
-        // 随机选择一个人
-        setTimeout(function() {
-          let availableParticipants = [...state.participants];
-          
-          // 如果不允许重复选择，过滤掉已经被选择过的人
-          if (!state.settings.allowRepeat) {
-            availableParticipants = availableParticipants.filter(p => {
-              return !state.selectionCount[p.name] || state.selectionCount[p.name] === 0;
-            });
-          }
-          
-          if (availableParticipants.length === 0) {
-            if (!state.settings.allowRepeat) {
-              alert('所有参与者都已被选择过，请重置选择统计或允许重复选择');
-              
-              // 重置选择统计
-              state.selectionCount = {};
-              availableParticipants = [...state.participants];
-            } else {
-              alert('没有可用的参与者');
-              loadingIndicator.classList.add('hidden');
-              state.isShaking = false;
-              return;
-            }
-          }
-          
-          const randomIndex = Math.floor(Math.random() * availableParticipants.length);
-          const selectedParticipant = availableParticipants[randomIndex];
-          
-          // 更新选择计数
-          if (!state.selectionCount[selectedParticipant.name]) {
-            state.selectionCount[selectedParticipant.name] = 0;
-          }
-          state.selectionCount[selectedParticipant.name]++;
-          
-          // 获取照片URL
-          const photoUrl = state.photos[selectedParticipant.photoKey] || `https://picsum.photos/200/200?random=${state.participants.indexOf(selectedParticipant) + 1}`;
-          
-          // 隐藏加载状态
-          loadingIndicator.classList.add('hidden');
-          
-          // 显示结果
-          resultName.textContent = selectedParticipant.name;
-          resultImage.src = photoUrl;
-          resultSection.style.opacity = '1';
-          resultSection.classList.add('result-appear');
-          
-          // 添加到历史记录
-          const timestamp = new Date();
-          const historyItem = {
-            name: selectedParticipant.name,
-            photoUrl: photoUrl,
-            time: timestamp.toLocaleString()
-          };
-          state.history.unshift(historyItem);
-          
-          // 最多保留10条历史记录
-          if (state.history.length > 10) {
-            state.history.pop();
-          }
-          
-          // 保存到localStorage
-          localStorage.setItem('shakeHistory', JSON.stringify(state.history));
-          
-          // 如果启用了自动删除，从列表中移除被选中的人
-          if (state.settings.autoRemove) {
-            const indexToRemove = state.participants.findIndex(p => p.name === selectedParticipant.name);
-            if (indexToRemove !== -1) {
-              state.participants.splice(indexToRemove, 1);
-              saveParticipants();
-              renderParticipants();
-            }
-          }
-          
-          // 渲染历史记录和更新图表
-          renderHistory();
-          updateChart();
-          
-          // 重置状态
-          state.isShaking = false;
-        }, 1500);
+      // 更新参与者计数
+      participantCount.textContent = `${participants.length}人`;
+    }
+    
+    // 移除参与者
+    function removeParticipant(index) {
+      participants.splice(index, 1);
+      updateParticipantList();
+      showNotification('参与者已移除！', 'info');
+    }
+    
+    // 清空所有数据
+    function clearAllData() {
+      if (confirm('确定要清空所有参与者数据吗？')) {
+        participants = [];
+        selectedParticipants = [];
+        updateParticipantList();
+        resetLotteryState();
+        showNotification('所有数据已清空！', 'info');
+      }
+    }
+    
+    // 开始/停止抽签
+    function toggleLottery() {
+      if (participants.length === 0) {
+        showNotification('请先导入参与者！', 'error');
+        return;
       }
       
-      // 渲染历史记录
-      function renderHistory() {
-        historyContainer.innerHTML = '';
+      if (isLottering) {
+        // 停止抽签，显示结果
+        stopLottery();
+      } else {
+        // 开始抽签
+        startLotteryAnimation();
+      }
+    }
+    
+    // 开始抽签动画
+    function startLotteryAnimation() {
+      isLottering = true;
+      startLottery.innerHTML = '<i class="fa fa-stop-circle mr-2"></i> 停止抽签';
+      startLottery.classList.remove('btn-primary');
+      startLottery.classList.add('btn-accent');
+      
+      // 隐藏占位符，显示动画
+      lotteryPlaceholder.classList.add('hidden');
+      lotteryAnimation.classList.remove('hidden');
+      lotteryFinal.classList.add('hidden');
+      
+      // 添加动画类
+      lotteryAnimation.classList.add('lottery-animation');
+      
+      // 快速切换参与者
+      let counter = 0;
+      lotteryInterval = setInterval(() => {
+        const randomIndex = Math.floor(Math.random() * participants.length);
+        const participant = participants[randomIndex];
         
-        if (state.history.length === 0) {
-          historyContainer.innerHTML = `
-            <div class="text-center py-6 text-blue-200">
-              <p>暂无记录</p>
-            </div>
-          `;
-          return;
+        lotteryName.textContent = participant.name;
+        lotteryImage.src = participant.photo;
+        lotteryImage.alt = participant.name;
+        
+        counter++;
+        // 逐渐减慢速度
+        if (counter > 30) {
+          clearInterval(lotteryInterval);
+          lotteryInterval = setInterval(() => {
+            const randomIndex = Math.floor(Math.random() * participants.length);
+            const participant = participants[randomIndex];
+            
+            lotteryName.textContent = participant.name;
+            lotteryImage.src = participant.photo;
+            lotteryImage.alt = participant.name;
+          }, 150);
         }
-        
-        state.history.forEach((item, index) => {
-          const historyEl = document.createElement('div');
-          historyEl.className = 'flex items-center justify-between p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors';
-          historyEl.innerHTML = `
-            <div class="flex items-center">
-              <div class="w-8 h-8 rounded-full overflow-hidden mr-3 border border-white/20">
-                <img src="${item.photoUrl}" alt="${item.name}" class="w-full h-full object-cover">
-              </div>
-              <span>${item.name}</span>
-            </div>
-            <div class="flex flex-col items-end">
-              <span class="text-xs text-blue-300">${item.time}</span>
-              <span class="text-xs bg-accent/20 text-accent px-2 py-0.5 rounded-full mt-1">
-                第${index + 1}次
-              </span>
-            </div>
-          `;
-          historyContainer.appendChild(historyEl);
-        });
+      }, 50);
+    }
+    
+    // 停止抽签，显示结果
+    function stopLottery() {
+      isLottering = false;
+      clearInterval(lotteryInterval);
+      startLottery.innerHTML = '<i class="fa fa-play-circle mr-2"></i> 开始抽签';
+      startLottery.classList.remove('btn-accent');
+      startLottery.classList.add('btn-primary');
+      
+      // 移除动画类
+      lotteryAnimation.classList.remove('lottery-animation');
+      
+      // 随机选择一名参与者
+      const remainingParticipants = participants.filter(p => !selectedParticipants.includes(p.name));
+      const randomIndex = remainingParticipants.length > 0 
+        ? Math.floor(Math.random() * remainingParticipants.length) 
+        : Math.floor(Math.random() * participants.length);
+      
+      const selectedParticipant = remainingParticipants.length > 0 
+        ? remainingParticipants[randomIndex] 
+        : participants[randomIndex];
+      
+      // 显示最终结果
+      finalName.textContent = selectedParticipant.name;
+      finalImage.src = selectedParticipant.photo;
+      finalImage.alt = selectedParticipant.name;
+      
+      lotteryAnimation.classList.add('hidden');
+      lotteryFinal.classList.remove('hidden');
+      
+      // 添加到已选列表
+      if (!selectedParticipants.includes(selectedParticipant.name)) {
+        selectedParticipants.push(selectedParticipant.name);
       }
       
-      // 更新图表
-      function updateChart() {
-        // 获取前5名被选中次数最多的参与者
-        const topParticipants = Object.entries(state.selectionCount)
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, 5);
-          
-        selectionChart.data.labels = topParticipants.map(p => p[0]);
-        selectionChart.data.datasets[0].data = topParticipants.map(p => p[1]);
-        selectionChart.update();
+      // 添加到历史记录
+      addToHistory(selectedParticipant);
+    }
+    
+    // 添加到历史记录
+    function addToHistory(participant) {
+      const historyItem = document.createElement('div');
+      historyItem.className = 'bg-gray-50 rounded-lg p-2 text-center card-hover';
+      historyItem.innerHTML = `
+        <img src="${participant.photo}" alt="${participant.name}" class="w-12 h-12 rounded-full mx-auto mb-2 object-cover">
+        <p class="font-medium text-sm">${participant.name}</p>
+      `;
+      
+      // 添加到历史记录列表的开头
+      if (historyList.firstChild) {
+        historyList.insertBefore(historyItem, historyList.firstChild);
+      } else {
+        historyList.appendChild(historyItem);
       }
       
-      // 保存参与者数据到本地存储
-      function saveParticipants() {
-        localStorage.setItem('shakeParticipants', JSON.stringify(state.participants));
-        localStorage.setItem('shakePhotos', JSON.stringify(state.photos));
+      // 添加动画效果
+      historyItem.classList.add('opacity-0', 'transform', 'translate-y-2');
+      setTimeout(() => {
+        historyItem.classList.remove('opacity-0', 'translate-y-2');
+        historyItem.classList.add('opacity-100', 'translate-y-0', 'transition-all', 'duration-300');
+      }, 10);
+    }
+    
+    // 重置抽签状态
+    function resetLotteryState() {
+      if (isLottering) {
+        clearInterval(lotteryInterval);
+        isLottering = false;
       }
       
-      // 生成随机房间ID
-      function generateRoomId() {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-        let result = '';
-        
-        // 从URL参数中获取房间ID（如果有）
-        const urlParams = new URLSearchParams(window.location.search);
-        const roomIdFromUrl = urlParams.get('room');
-        
-        if (roomIdFromUrl && /^[A-Z0-9]{6}$/.test(roomIdFromUrl)) {
-          return roomIdFromUrl;
-        }
-        
-        // 生成新的随机房间ID
-        for (let i = 0; i < 6; i++) {
-          result += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        
-        return `SHAKE-${result}`;
+      startLottery.innerHTML = '<i class="fa fa-play-circle mr-2"></i> 开始抽签';
+      startLottery.classList.remove('btn-accent');
+      startLottery.classList.add('btn-primary');
+      
+      lotteryPlaceholder.classList.remove('hidden');
+      lotteryAnimation.classList.add('hidden');
+      lotteryFinal.classList.add('hidden');
+      
+      // 移除动画类
+      lotteryAnimation.classList.remove('lottery-animation');
+      
+      showNotification('抽签已重置！', 'info');
+    }
+    
+    // 显示通知
+    function showNotification(message, type = 'info') {
+      // 创建通知元素
+      const notification = document.createElement('div');
+      
+      // 设置样式根据类型
+      let bgColor, textColor, icon;
+      switch(type) {
+        case 'success':
+          bgColor = 'bg-green-50';
+          textColor = 'text-green-800';
+          icon = 'fa-check-circle';
+          break;
+        case 'error':
+          bgColor = 'bg-red-50';
+          textColor = 'text-red-800';
+          icon = 'fa-exclamation-circle';
+          break;
+        case 'warning':
+          bgColor = 'bg-yellow-50';
+          textColor = 'text-yellow-800';
+          icon = 'fa-exclamation-triangle';
+          break;
+        default: // info
+          bgColor = 'bg-blue-50';
+          textColor = 'text-blue-800';
+          icon = 'fa-info-circle';
       }
-    });
+      
+      // 设置通知内容
+      notification.className = `${bgColor} ${textColor} border-l-4 border-blue-400 p-4 fixed top-4 right-4 shadow-lg rounded-lg transform transition-all duration-500 translate-x-full opacity-0 z-50 flex items-center space-x-3`;
+      notification.innerHTML = `
+        <i class="fa ${icon} text-xl"></i>
+        <p>${message}</p>
+      `;
+      
+      // 添加到页面
+      document.body.appendChild(notification);
+      
+      // 显示通知
+      setTimeout(() => {
+        notification.classList.remove('translate-x-full', 'opacity-0');
+        notification.classList.add('translate-x-0', 'opacity-100');
+      }, 10);
+      
+      // 自动隐藏
+      setTimeout(() => {
+        notification.classList.remove('translate-x-0', 'opacity-100');
+        notification.classList.add('translate-x-full', 'opacity-0');
+        
+        // 完全隐藏后移除元素
+        setTimeout(() => {
+          document.body.removeChild(notification);
+        }, 500);
+      }, 3000);
+    }
+    
+    // 显示帮助模态框
+    function showHelpModal() {
+      helpModal.classList.remove('hidden');
+      helpModal.classList.add('flex');
+      
+      // 添加动画效果
+      const modalContent = helpModal.querySelector('div');
+      modalContent.classList.add('opacity-0', 'scale-95');
+      setTimeout(() => {
+        modalContent.classList.remove('opacity-0', 'scale-95');
+        modalContent.classList.add('opacity-100', 'scale-100', 'transition-all', 'duration-300');
+      }, 10);
+    }
+    
+    // 隐藏帮助模态框
+    function hideHelpModal() {
+      const modalContent = helpModal.querySelector('div');
+      modalContent.classList.remove('opacity-100', 'scale-100');
+      modalContent.classList.add('opacity-0', 'scale-95', 'transition-all', 'duration-300');
+      
+      setTimeout(() => {
+        helpModal.classList.remove('flex');
+        helpModal.classList.add('hidden');
+      }, 300);
+    }
+    
+    // 初始化主题
+    function initTheme() {
+      if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+        themeToggle.innerHTML = '<i class="fa fa-sun-o text-neutral"></i>';
+      } else {
+        document.documentElement.classList.remove('dark');
+        themeToggle.innerHTML = '<i class="fa fa-moon-o text-neutral"></i>';
+      }
+    }
+    
+    // 切换主题
+    function toggleTheme() {
+      if (document.documentElement.classList.contains('dark')) {
+        document.documentElement.classList.remove('dark');
+        localStorage.theme = 'light';
+        themeToggle.innerHTML = '<i class="fa fa-moon-o text-neutral"></i>';
+      } else {
+        document.documentElement.classList.add('dark');
+        localStorage.theme = 'dark';
+        themeToggle.innerHTML = '<i class="fa fa-sun-o text-neutral"></i>';
+      }
+    }
   </script>
 </body>
 </html>
